@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Corazón cinematográfico</title>
+
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #1b1428;
+  }
+
+  canvas {
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="lienzo"></canvas>
+
+<script>
+const canvas = document.getElementById("lienzo");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const TOTAL_BESOS = 1200;
+
+let besos = [];
+let besosLluvia = [];
+let textoParticulas = [];
+let estrellas = [];
+
+let tiempo = 0;
+let duracion = 20 * 60;
+
+let iniciado = false;
+let finalizado = false;
+
+// 🌌 ESTRELLAS
+function crearEstrellas(){
+  const capas = 3;
+
+  for(let c=0; c<capas; c++){
+    const cantidad = 80 * (c+1);
+
+    for(let i=0;i<cantidad;i++){
+      estrellas.push({
+        x: Math.random()*canvas.width,
+        y: Math.random()*canvas.height,
+        r: Math.random()*1.5,
+        speed: 0.1 + c*0.2,
+        alpha: 0.2 + Math.random()*0.5
+      });
+    }
+  }
+}
+
+function dibujarEstrellas(){
+  estrellas.forEach(s=>{
+    s.x += s.speed;
+    if(s.x > canvas.width) s.x = 0;
+
+    ctx.globalAlpha = s.alpha;
+    ctx.fillStyle = "#ffffff";
+
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  ctx.globalAlpha = 1;
+}
+
+// ✨ ESTILO TEXTO UNIFICADO
+function setEstiloTexto(){
+  ctx.font = "bold 55px 'Segoe Script', cursive";
+  ctx.fillStyle = "#ffd6e0";
+  ctx.textBaseline = "middle";
+}
+
+// ❤️ corazón
+function puntoCorazon(t) {
+  const x = 16 * Math.pow(Math.sin(t), 3);
+  const y = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t));
+  return { x, y };
+}
+
+// 💋 BESOS REALISTAS
+function dibujarBeso(x, y, size, color, rot=0, alpha=1) {
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+  ctx.rotate(rot);
+
+  const grad = ctx.createRadialGradient(0, 0, 1, 0, 0, size*1.5);
+  grad.addColorStop(0, color);
+  grad.addColorStop(1, "#7a1c3a");
+
+  ctx.fillStyle = grad;
+
+  ctx.beginPath();
+  ctx.moveTo(-size, 0);
+
+  ctx.bezierCurveTo(-size, -size, size, -size, size, 0);
+  ctx.bezierCurveTo(size, size, -size, size, -size, 0);
+
+  ctx.fill();
+
+  // brillo
+  ctx.globalAlpha = alpha * 0.25;
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.ellipse(0, -size/3, size/2, size/4, 0, 0, Math.PI*2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// 🎨 colores
+function colorRandom() {
+  const tonos = [
+    "#ff4d6d","#ff5c7a","#ff6f8e",
+    "#ff8fa3","#ffb3c1"
+  ];
+  return tonos[Math.floor(Math.random()*tonos.length)];
+}
+
+// 💋 crear beso
+function crearBeso() {
+  const t = Math.random() * Math.PI * 2;
+  const p = puntoCorazon(t);
+
+  const escala = Math.min(canvas.width, canvas.height) / 45;
+  const r = Math.random();
+
+  return {
+    x: canvas.width/2,
+    y: canvas.height/2,
+    tx: canvas.width/2 + p.x * escala * r,
+    ty: canvas.height/2 + p.y * escala * r,
+    size: 5 + Math.random()*3,
+    color: colorRandom(),
+    alpha: 0
+  };
+}
+
+// 🌧️ lluvia
+function crearLluvia() {
+  besos.forEach(b => {
+    besosLluvia.push({
+      x: b.tx,
+      y: b.ty,
+      vx: Math.random()*2-1,
+      vy: Math.random()*3 + 2,
+      rot: Math.random()*Math.PI,
+      vr: Math.random()*0.1-0.05,
+      size: b.size,
+      color: b.color
+    });
+  });
+}
+
+// ✨ texto partículas
+function crearTextoParticulas() {
+  const temp = document.createElement("canvas");
+  const tctx = temp.getContext("2d");
+
+  temp.width = 400;
+  temp.height = 200;
+
+  tctx.fillStyle = "white";
+  tctx.font = "bold 45px 'Segoe Script', cursive";
+  tctx.fillText("365 besos distintos", 10, 80);
+  tctx.fillText("para curarte", 10, 140);
+
+  const data = tctx.getImageData(0,0,temp.width,temp.height);
+
+  for(let x=0; x<temp.width; x+=4){
+    for(let y=0; y<temp.height; y+=4){
+      const i = (y*temp.width+x)*4;
+      if(data.data[i+3] > 150){
+        textoParticulas.push({
+          x: Math.random()*canvas.width,
+          y: Math.random()*canvas.height,
+          tx: 50 + x,
+          ty: canvas.height/2 + y - 100
+        });
+      }
+    }
+  }
+}
+
+// 🖱️ click
+window.addEventListener("click", () => {
+  if(!iniciado){
+    iniciado = true;
+    crearEstrellas();
+  }
+});
+
+// 🌑 viñeta
+function drawVignette(){
+  const g = ctx.createRadialGradient(
+    canvas.width/2,
+    canvas.height/2,
+    100,
+    canvas.width/2,
+    canvas.height/2,
+    canvas.width
+  );
+
+  g.addColorStop(0, "rgba(0,0,0,0)");
+  g.addColorStop(1, "rgba(0,0,0,0.65)");
+
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+}
+
+// 🎬 LOOP
+function loop(){
+  requestAnimationFrame(loop);
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  drawVignette();
+  dibujarEstrellas();
+
+  setEstiloTexto();
+  ctx.fillText("Son:", canvas.width - 260, canvas.height * 0.3);
+  ctx.fillText("365 días", 60, canvas.height * 0.3);
+
+  if(!iniciado){
+    ctx.font = "30px 'Segoe Script', cursive";
+    ctx.fillText("Haz click para comenzar", canvas.width/2-180, canvas.height/2);
+    return;
+  }
+
+  if(!finalizado){
+
+    tiempo++;
+    let progreso = Math.min(tiempo/duracion, 1);
+
+    if(progreso >= 1){
+      finalizado = true;
+      crearLluvia();
+      crearTextoParticulas();
+    }
+
+    let cantidad = Math.floor(TOTAL_BESOS * Math.pow(progreso,2));
+
+    while(besos.length < cantidad){
+      besos.push(crearBeso());
+    }
+
+    besos.forEach(b=>{
+      b.x += (b.tx - b.x)*0.05;
+      b.y += (b.ty - b.y)*0.05;
+      b.alpha = Math.min(b.alpha + 0.03, 1);
+
+      dibujarBeso(b.x,b.y,b.size,b.color,0,b.alpha);
+    });
+
+  } else {
+
+    besos.forEach(b=>{
+      dibujarBeso(b.tx,b.ty,b.size,b.color);
+    });
+
+    besosLluvia.forEach(b=>{
+      b.x += b.vx;
+      b.y += b.vy;
+      b.rot += b.vr;
+
+      dibujarBeso(b.x,b.y,b.size,b.color,b.rot,0.9);
+    });
+
+    textoParticulas.forEach(p=>{
+      p.x += (p.tx - p.x)*0.05;
+      p.y += (p.ty - p.y)*0.05;
+
+      ctx.fillStyle = "#ffd6e0";
+      ctx.fillRect(p.x,p.y,2,2);
+    });
+  }
+}
+
+loop();
+</script>
+
+</body>
+</html>
