@@ -48,14 +48,36 @@ let finalizado = false;
 const imgBeso = new Image();
 imgBeso.src = "beso.png";
 
-// 🎨 tonos rosas
+// 🎨 colores
 const colores = ["#ff4d6d","#ff6f8e","#ff8fa3","#ffb3c1","#ff758f"];
 
 function colorRandom(){
   return colores[Math.floor(Math.random()*colores.length)];
 }
 
-// 🌌 estrellas
+// ======================
+// 🎵 MÚSICA CON FADE IN
+// ======================
+const musica = document.getElementById("musica");
+musica.volume = 0;
+
+function fadeInAudio(){
+  musica.play();
+
+  let vol = 0;
+  const interval = setInterval(() => {
+    vol += 0.01;
+    if(vol >= 0.6){
+      vol = 0.6;
+      clearInterval(interval);
+    }
+    musica.volume = vol;
+  }, 80);
+}
+
+// ======================
+// 🌌 ESTRELLAS
+// ======================
 function crearEstrellas(){
   for(let i=0;i<200;i++){
     estrellas.push({
@@ -80,6 +102,7 @@ function dibujarEstrellas(){
     ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
     ctx.fill();
   });
+
   ctx.globalAlpha = 1;
 }
 
@@ -90,7 +113,9 @@ function puntoCorazon(t) {
   return { x, y };
 }
 
-// 💋 beso con COLOR aplicado a PNG
+// ======================
+// 💋 BESO (SIN GLITCHES)
+// ======================
 function dibujarBeso(x, y, size, rot=0, alpha=1, color="#ff4d6d") {
 
   ctx.save();
@@ -98,11 +123,11 @@ function dibujarBeso(x, y, size, rot=0, alpha=1, color="#ff4d6d") {
   ctx.translate(x, y);
   ctx.rotate(rot);
 
-  // dibujar imagen
+  // imagen base
   ctx.drawImage(imgBeso, -size, -size, size*2, size*2);
 
-  // aplicar color encima (multiplicación)
-  ctx.globalCompositeOperation = "source-atop";
+  // tint seguro (sin romper canvas)
+  ctx.globalCompositeOperation = "multiply";
   ctx.fillStyle = color;
   ctx.fillRect(-size, -size, size*2, size*2);
 
@@ -146,46 +171,14 @@ function crearLluvia() {
   });
 }
 
-// ✨ texto partículas
-function crearTextoParticulas() {
-  const temp = document.createElement("canvas");
-  const tctx = temp.getContext("2d");
-
-  temp.width = 700;
-  temp.height = 300;
-
-  tctx.fillStyle = "white";
-  tctx.font = "bold 60px sans-serif";
-
-  tctx.fillText("365 besos distintos", 20, 120);
-  tctx.fillText("para curarte", 20, 220);
-
-  const data = tctx.getImageData(0,0,temp.width,temp.height);
-
-  for(let x=0; x<temp.width; x+=4){
-    for(let y=0; y<temp.height; y+=4){
-      const i = (y*temp.width+x)*4;
-      if(data.data[i+3] > 150){
-        textoParticulas.push({
-          x: Math.random()*canvas.width,
-          y: Math.random()*canvas.height,
-          tx: canvas.width*0.05 + x,
-          ty: canvas.height*0.65 + y - 150
-        });
-      }
-    }
-  }
-}
-
-// 🖱️ click iniciar + musica
+// ======================
+// CLICK INICIO
+// ======================
 window.addEventListener("click", () => {
   if(!iniciado){
     iniciado = true;
     crearEstrellas();
-
-    const musica = document.getElementById("musica");
-    musica.volume = 0.6;
-    musica.play();
+    fadeInAudio();
   }
 });
 
@@ -207,7 +200,9 @@ function drawVignette(){
   ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
-// ================= LOOP =================
+// ======================
+// LOOP
+// ======================
 function loop(){
   requestAnimationFrame(loop);
 
@@ -216,7 +211,7 @@ function loop(){
   drawVignette();
   dibujarEstrellas();
 
-  // TEXTOS (YA NO CRUZAN EL CORAZÓN)
+  // textos
   ctx.fillStyle = "#ffd6e0";
   ctx.font = "bold 50px sans-serif";
 
@@ -237,7 +232,6 @@ function loop(){
     if(progreso >= 1){
       finalizado = true;
       crearLluvia();
-      crearTextoParticulas();
     }
 
     let cantidad = Math.floor(TOTAL_BESOS * Math.pow(progreso,2));
@@ -256,27 +250,16 @@ function loop(){
 
   } else {
 
-    // corazón fijo
     besos.forEach(b=>{
       dibujarBeso(b.tx,b.ty,b.size,0,1,b.color);
     });
 
-    // lluvia
     besosLluvia.forEach(b=>{
       b.x += b.vx;
       b.y += b.vy;
       b.rot += b.vr;
 
       dibujarBeso(b.x,b.y,b.size,b.rot,0.9,b.color);
-    });
-
-    // texto partículas (lado izquierdo)
-    textoParticulas.forEach(p=>{
-      p.x += (p.tx - p.x)*0.05;
-      p.y += (p.ty - p.y)*0.05;
-
-      ctx.fillStyle = "#ffd6e0";
-      ctx.fillRect(p.x,p.y,2,2);
     });
   }
 }
