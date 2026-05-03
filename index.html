@@ -184,20 +184,8 @@ window.addEventListener("click", () => {
     crearEstrellas();
 
     const musica = document.getElementById("musica");
-    musica.volume = 0;
-
-    function fadeInAudio(){
+    musica.volume = 0.6;
     musica.play();
-
-    let vol = 0;
-    const interval = setInterval(() => {
-    vol += 0.01;
-    if(vol >= 0.6){
-      vol = 0.6;
-        clearInterval(interval);
-        }
-        musica.volume = vol;
-          }, 80);
   }
 });
 
