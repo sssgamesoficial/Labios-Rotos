@@ -20,7 +20,6 @@
 
 <canvas id="lienzo"></canvas>
 
-<!-- 🎵 MUSICA -->
 <audio id="musica" loop>
   <source src="musica.mp3" type="audio/mpeg">
 </audio>
@@ -45,9 +44,16 @@ let duracion = 18 * 60;
 let iniciado = false;
 let finalizado = false;
 
-// 🖼️ IMAGEN BESO
+// 🖼️ imagen beso
 const imgBeso = new Image();
 imgBeso.src = "beso.png";
+
+// 🎨 tonos rosas
+const colores = ["#ff4d6d","#ff6f8e","#ff8fa3","#ffb3c1","#ff758f"];
+
+function colorRandom(){
+  return colores[Math.floor(Math.random()*colores.length)];
+}
 
 // 🌌 estrellas
 function crearEstrellas(){
@@ -74,7 +80,6 @@ function dibujarEstrellas(){
     ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
     ctx.fill();
   });
-
   ctx.globalAlpha = 1;
 }
 
@@ -85,14 +90,23 @@ function puntoCorazon(t) {
   return { x, y };
 }
 
-// 💋 dibujar beso IMAGEN
-function dibujarBeso(x, y, size, rot=0, alpha=1) {
+// 💋 beso con COLOR aplicado a PNG
+function dibujarBeso(x, y, size, rot=0, alpha=1, color="#ff4d6d") {
+
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.translate(x, y);
   ctx.rotate(rot);
 
+  // dibujar imagen
   ctx.drawImage(imgBeso, -size, -size, size*2, size*2);
+
+  // aplicar color encima (multiplicación)
+  ctx.globalCompositeOperation = "source-atop";
+  ctx.fillStyle = color;
+  ctx.fillRect(-size, -size, size*2, size*2);
+
+  ctx.globalCompositeOperation = "source-over";
 
   ctx.restore();
 }
@@ -111,7 +125,8 @@ function crearBeso() {
     tx: canvas.width/2 + p.x * escala * r,
     ty: canvas.height/2 + p.y * escala * r,
     size: 8 + Math.random()*6,
-    alpha: 0
+    alpha: 0,
+    color: colorRandom()
   };
 }
 
@@ -125,17 +140,18 @@ function crearLluvia() {
       vy: Math.random()*3 + 2,
       rot: Math.random()*Math.PI,
       vr: Math.random()*0.1-0.05,
-      size: b.size
+      size: b.size,
+      color: b.color
     });
   });
 }
 
-// ✨ texto partículas (FIX tamaño)
+// ✨ texto partículas
 function crearTextoParticulas() {
   const temp = document.createElement("canvas");
   const tctx = temp.getContext("2d");
 
-  temp.width = 700; // 🔥 MÁS GRANDE
+  temp.width = 700;
   temp.height = 300;
 
   tctx.fillStyle = "white";
@@ -153,8 +169,8 @@ function crearTextoParticulas() {
         textoParticulas.push({
           x: Math.random()*canvas.width,
           y: Math.random()*canvas.height,
-          tx: 60 + x,
-          ty: canvas.height/2 + y - 150
+          tx: canvas.width*0.05 + x,
+          ty: canvas.height*0.65 + y - 150
         });
       }
     }
@@ -168,7 +184,7 @@ window.addEventListener("click", () => {
     crearEstrellas();
 
     const musica = document.getElementById("musica");
-    musica.volume = 0.5;
+    musica.volume = 0.6;
     musica.play();
   }
 });
@@ -185,7 +201,7 @@ function drawVignette(){
   );
 
   g.addColorStop(0, "rgba(0,0,0,0)");
-  g.addColorStop(1, "rgba(0,0,0,0.65)");
+  g.addColorStop(1, "rgba(0,0,0,0.7)");
 
   ctx.fillStyle = g;
   ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -200,11 +216,12 @@ function loop(){
   drawVignette();
   dibujarEstrellas();
 
+  // TEXTOS (YA NO CRUZAN EL CORAZÓN)
   ctx.fillStyle = "#ffd6e0";
   ctx.font = "bold 50px sans-serif";
 
-  ctx.fillText("Son:", canvas.width - 260, canvas.height * 0.3);
   ctx.fillText("365 días", 60, canvas.height * 0.3);
+  ctx.fillText("Son:", canvas.width - 200, canvas.height * 0.3);
 
   if(!iniciado){
     ctx.font = "30px sans-serif";
@@ -234,14 +251,14 @@ function loop(){
       b.y += (b.ty - b.y)*0.05;
       b.alpha = Math.min(b.alpha + 0.03, 1);
 
-      dibujarBeso(b.x,b.y,b.size,0,b.alpha);
+      dibujarBeso(b.x,b.y,b.size,0,b.alpha,b.color);
     });
 
   } else {
 
     // corazón fijo
     besos.forEach(b=>{
-      dibujarBeso(b.tx,b.ty,b.size);
+      dibujarBeso(b.tx,b.ty,b.size,0,1,b.color);
     });
 
     // lluvia
@@ -250,10 +267,10 @@ function loop(){
       b.y += b.vy;
       b.rot += b.vr;
 
-      dibujarBeso(b.x,b.y,b.size,b.rot,0.9);
+      dibujarBeso(b.x,b.y,b.size,b.rot,0.9,b.color);
     });
 
-    // texto partículas
+    // texto partículas (lado izquierdo)
     textoParticulas.forEach(p=>{
       p.x += (p.tx - p.x)*0.05;
       p.y += (p.ty - p.y)*0.05;
