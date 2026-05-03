@@ -20,6 +20,11 @@
 
 <canvas id="lienzo"></canvas>
 
+<!-- 🎵 MUSICA -->
+<audio id="musica" loop>
+  <source src="musica.mp3" type="audio/mpeg">
+</audio>
+
 <script>
 const canvas = document.getElementById("lienzo");
 const ctx = canvas.getContext("2d");
@@ -27,7 +32,7 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-const TOTAL_BESOS = 1200;
+const TOTAL_BESOS = 1000;
 
 let besos = [];
 let besosLluvia = [];
@@ -35,27 +40,25 @@ let textoParticulas = [];
 let estrellas = [];
 
 let tiempo = 0;
-let duracion = 20 * 60;
+let duracion = 18 * 60;
 
 let iniciado = false;
 let finalizado = false;
 
-// 🌌 ESTRELLAS
+// 🖼️ IMAGEN BESO
+const imgBeso = new Image();
+imgBeso.src = "beso.png";
+
+// 🌌 estrellas
 function crearEstrellas(){
-  const capas = 3;
-
-  for(let c=0; c<capas; c++){
-    const cantidad = 80 * (c+1);
-
-    for(let i=0;i<cantidad;i++){
-      estrellas.push({
-        x: Math.random()*canvas.width,
-        y: Math.random()*canvas.height,
-        r: Math.random()*1.5,
-        speed: 0.1 + c*0.2,
-        alpha: 0.2 + Math.random()*0.5
-      });
-    }
+  for(let i=0;i<200;i++){
+    estrellas.push({
+      x: Math.random()*canvas.width,
+      y: Math.random()*canvas.height,
+      r: Math.random()*1.5,
+      speed: Math.random()*0.3,
+      alpha: Math.random()
+    });
   }
 }
 
@@ -65,7 +68,7 @@ function dibujarEstrellas(){
     if(s.x > canvas.width) s.x = 0;
 
     ctx.globalAlpha = s.alpha;
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#fff";
 
     ctx.beginPath();
     ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
@@ -75,13 +78,6 @@ function dibujarEstrellas(){
   ctx.globalAlpha = 1;
 }
 
-// ✨ ESTILO TEXTO UNIFICADO
-function setEstiloTexto(){
-  ctx.font = "bold 55px 'Segoe Script', cursive";
-  ctx.fillStyle = "#ffd6e0";
-  ctx.textBaseline = "middle";
-}
-
 // ❤️ corazón
 function puntoCorazon(t) {
   const x = 16 * Math.pow(Math.sin(t), 3);
@@ -89,45 +85,16 @@ function puntoCorazon(t) {
   return { x, y };
 }
 
-// 💋 BESOS REALISTAS
-function dibujarBeso(x, y, size, color, rot=0, alpha=1) {
-
+// 💋 dibujar beso IMAGEN
+function dibujarBeso(x, y, size, rot=0, alpha=1) {
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.translate(x, y);
   ctx.rotate(rot);
 
-  const grad = ctx.createRadialGradient(0, 0, 1, 0, 0, size*1.5);
-  grad.addColorStop(0, color);
-  grad.addColorStop(1, "#7a1c3a");
-
-  ctx.fillStyle = grad;
-
-  ctx.beginPath();
-  ctx.moveTo(-size, 0);
-
-  ctx.bezierCurveTo(-size, -size, size, -size, size, 0);
-  ctx.bezierCurveTo(size, size, -size, size, -size, 0);
-
-  ctx.fill();
-
-  // brillo
-  ctx.globalAlpha = alpha * 0.25;
-  ctx.fillStyle = "#ffffff";
-  ctx.beginPath();
-  ctx.ellipse(0, -size/3, size/2, size/4, 0, 0, Math.PI*2);
-  ctx.fill();
+  ctx.drawImage(imgBeso, -size, -size, size*2, size*2);
 
   ctx.restore();
-}
-
-// 🎨 colores
-function colorRandom() {
-  const tonos = [
-    "#ff4d6d","#ff5c7a","#ff6f8e",
-    "#ff8fa3","#ffb3c1"
-  ];
-  return tonos[Math.floor(Math.random()*tonos.length)];
 }
 
 // 💋 crear beso
@@ -143,8 +110,7 @@ function crearBeso() {
     y: canvas.height/2,
     tx: canvas.width/2 + p.x * escala * r,
     ty: canvas.height/2 + p.y * escala * r,
-    size: 5 + Math.random()*3,
-    color: colorRandom(),
+    size: 8 + Math.random()*6,
     alpha: 0
   };
 }
@@ -159,24 +125,24 @@ function crearLluvia() {
       vy: Math.random()*3 + 2,
       rot: Math.random()*Math.PI,
       vr: Math.random()*0.1-0.05,
-      size: b.size,
-      color: b.color
+      size: b.size
     });
   });
 }
 
-// ✨ texto partículas
+// ✨ texto partículas (FIX tamaño)
 function crearTextoParticulas() {
   const temp = document.createElement("canvas");
   const tctx = temp.getContext("2d");
 
-  temp.width = 400;
-  temp.height = 200;
+  temp.width = 700; // 🔥 MÁS GRANDE
+  temp.height = 300;
 
   tctx.fillStyle = "white";
-  tctx.font = "bold 45px 'Segoe Script', cursive";
-  tctx.fillText("365 besos distintos", 10, 80);
-  tctx.fillText("para curarte", 10, 140);
+  tctx.font = "bold 60px sans-serif";
+
+  tctx.fillText("365 besos distintos", 20, 120);
+  tctx.fillText("para curarte", 20, 220);
 
   const data = tctx.getImageData(0,0,temp.width,temp.height);
 
@@ -187,23 +153,27 @@ function crearTextoParticulas() {
         textoParticulas.push({
           x: Math.random()*canvas.width,
           y: Math.random()*canvas.height,
-          tx: 50 + x,
-          ty: canvas.height/2 + y - 100
+          tx: 60 + x,
+          ty: canvas.height/2 + y - 150
         });
       }
     }
   }
 }
 
-// 🖱️ click
+// 🖱️ click iniciar + musica
 window.addEventListener("click", () => {
   if(!iniciado){
     iniciado = true;
     crearEstrellas();
+
+    const musica = document.getElementById("musica");
+    musica.volume = 0.5;
+    musica.play();
   }
 });
 
-// 🌑 viñeta
+// 🌑 vignette
 function drawVignette(){
   const g = ctx.createRadialGradient(
     canvas.width/2,
@@ -221,7 +191,7 @@ function drawVignette(){
   ctx.fillRect(0,0,canvas.width,canvas.height);
 }
 
-// 🎬 LOOP
+// ================= LOOP =================
 function loop(){
   requestAnimationFrame(loop);
 
@@ -230,13 +200,15 @@ function loop(){
   drawVignette();
   dibujarEstrellas();
 
-  setEstiloTexto();
+  ctx.fillStyle = "#ffd6e0";
+  ctx.font = "bold 50px sans-serif";
+
   ctx.fillText("Son:", canvas.width - 260, canvas.height * 0.3);
   ctx.fillText("365 días", 60, canvas.height * 0.3);
 
   if(!iniciado){
-    ctx.font = "30px 'Segoe Script', cursive";
-    ctx.fillText("Haz click para comenzar", canvas.width/2-180, canvas.height/2);
+    ctx.font = "30px sans-serif";
+    ctx.fillText("Haz click para comenzar", canvas.width/2-160, canvas.height/2);
     return;
   }
 
@@ -262,23 +234,26 @@ function loop(){
       b.y += (b.ty - b.y)*0.05;
       b.alpha = Math.min(b.alpha + 0.03, 1);
 
-      dibujarBeso(b.x,b.y,b.size,b.color,0,b.alpha);
+      dibujarBeso(b.x,b.y,b.size,0,b.alpha);
     });
 
   } else {
 
+    // corazón fijo
     besos.forEach(b=>{
-      dibujarBeso(b.tx,b.ty,b.size,b.color);
+      dibujarBeso(b.tx,b.ty,b.size);
     });
 
+    // lluvia
     besosLluvia.forEach(b=>{
       b.x += b.vx;
       b.y += b.vy;
       b.rot += b.vr;
 
-      dibujarBeso(b.x,b.y,b.size,b.color,b.rot,0.9);
+      dibujarBeso(b.x,b.y,b.size,b.rot,0.9);
     });
 
+    // texto partículas
     textoParticulas.forEach(p=>{
       p.x += (p.tx - p.x)*0.05;
       p.y += (p.ty - p.y)*0.05;
